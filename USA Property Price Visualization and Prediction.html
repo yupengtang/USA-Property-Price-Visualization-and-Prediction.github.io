@@ -1,0 +1,335 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      font-size: 18pt;
+      padding: 2rem;
+      background: #004687; 
+    }
+    
+    .poster {
+      width: 100%;
+      aspect-ratio: 30/40;
+      background: white;
+      padding: 2rem;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      grid-template-rows: auto 1fr;
+      gap: 2rem;
+      border-radius: 1rem;
+    }
+    
+    .header {
+      grid-column: 1 / -1;
+      text-align: center;
+      border-bottom: 4px solid #54278f; /* Rose color */
+      padding-bottom: 1.5rem;
+      margin-bottom: 1.5rem;
+      background: #004687; /* Peach */
+      border-radius: 0.5rem;
+      padding: 2rem;
+    }
+    
+    .title {
+      font-size: 42pt;
+      font-weight: 800;
+      color: white; /* Navy blue */
+      margin-bottom: 1.5rem;
+      letter-spacing: -0.02em;
+    }
+    
+    .authors {
+      font-size: 20pt;
+      color: darkgray; /* Rose */
+      font-weight: 500;
+    }
+    
+    .section {
+      padding: 1.5rem;
+      background: white;
+      border-radius: 1rem;
+      margin-bottom: 1rem;
+      border: 2px solid #756bb1; /* Peach border */
+      transition: transform 0.2s;
+    }
+    
+    .section:hover {
+      transform: translateY(-4px);
+    }
+    
+    .section:last-child {
+      grid-column: 2 / -1;
+      background: #004687; /* Navy background for visualization */
+      color: white;
+    }
+    
+    .section-title {
+      font-size: 26pt;
+      font-weight: 700;
+      color: #004687; /* Navy */
+      margin-bottom: 1rem;
+      border-bottom: 3px solid #00a39b; /* Teal */
+      padding-bottom: 0.5rem;
+    }
+    
+    .section:last-child .section-title {
+      color: white;
+      border-bottom-color: white; /* Peach */
+    }
+    
+    .content-text {
+      font-size: 18pt;
+      line-height: 1.5;
+    }
+    
+    .highlight-box {
+      background: #f8f9fa;
+      padding: 1.25rem;
+      border-radius: 0.75rem;
+      margin: 1rem 0;
+      border-left: 4px solid #00a39b; /* Teal accent */
+    }
+    
+    .section:last-child .highlight-box {
+      background: rgba(255,255,255,0.1);
+      border-left-color: #e84a7b; /* Rose accent */
+    }
+    
+    .results-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      margin: 1rem 0;
+      border-radius: 0.5rem;
+      overflow: hidden;
+    }
+    
+    .results-table th, .results-table td {
+      border: none;
+      padding: 0.75rem;
+      text-align: center;
+    }
+    
+    .results-table th {
+      background: #004687; /* Navy */
+      color: white;
+      font-weight: 600;
+    }
+    
+    .results-table tr:nth-child(even) {
+      background: #f8f9fa;
+    }
+    
+    .results-table tr:hover {
+      background: #756bb1; /* Peach hover */
+    }
+    
+    img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 0.75rem;
+      margin: 1rem 0;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+    }
+    
+    ul {
+      list-style-type: none;
+      padding-left: 1rem;
+    }
+    
+    li {
+      position: relative;
+      padding-left: 1.5rem;
+      margin-bottom: 0.5rem;
+    }
+    
+    li:before {
+      content: "•";
+      color: #54278f; /* Rose bullets */
+      font-weight: bold;
+      position: absolute;
+      left: 0;
+    }
+    
+    .section:last-child li:before {
+      color: #756bb1; /* Peach bullets in dark section */
+    }
+  </style>
+</head>
+<body>
+  <div class="poster">
+    <header class="header">
+      <h1 class="title">USA Property Price Visualization and Prediction</h1>
+      <p class="authors">Ian Wong, Xianrui Teng, Huanzhong Jia, Dongsheng Yao, Yupeng Tang, Linhao Bai</p>
+      <p style="color: darkgray; margin-top: 1rem;">Georgia Institute of Technology - CSE6242 Team 011</p>
+    </header>
+
+    <div class="section">
+      <h2 class="section-title">Motivation</h2>
+      <div class="content-text">
+        <div class="highlight-box">
+          <strong>Problem:</strong> The real estate market involves complex datasets influenced by numerous factors, making it challenging to analyze using traditional tools. These tools often lack intuitive visualizations, predictive analytics, the ability to provide real-time insights, and the scalibity for large datasets, which limits their effectiveness and accessibility.
+        </div>
+        <div class="highlight-box">
+          <strong>Why is it important?</strong>
+          <ul>
+            <li>Understanding and analyzing real estate data is crucial for informed decision-making by buyers, sellers, and investors.</li>
+            <li>By addressing the limitations of traditional methods, our solution integrates interactive visualizations, machine learning models, and large language models to enhance: scalability, interactivity, accessibility, and predictive power.</li>
+            <li>These advancements make complex data accessible to non-experts, enabling natural language interactions and real-time summarization of visualizations.</li>
+          </ul>
+            
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2 class="section-title">Our Approaches</h2>
+      <div class="content-text">
+        <strong>Key Components:</strong>
+        <ul>
+          <li>Interactive visualizations combining state/Zip Code level maps with multi-dimensional view.</li>
+          <li>Machine learning models to provide price prediction.</li>
+          <li>Large language models for real-time insights based on visualizations.</li>
+        </ul>
+        <strong>How do they work?</strong>
+        <ul>
+          <li>Users can explore data through interactive choropleth maps and multi-dimensional plot.</li>
+          <li>Multiple ML models are trained help forecast property prices based on user-selected parameters.</li>
+          <li>LLMs summarize complex visualizations into natural language, making insights accessible to non-experts.</li>
+        </ul>
+        <div class="highlight-box">
+          <strong>Intuition Behind Our Approach:</strong>
+          <ul>
+            <li>Interactivity enables users to uncover patterns and correlations across regions and attributes.</li>
+            <li>Predictive Analytics empower users with actionable insights, allowing them to estimate property prices based on multiple factors.</li>
+            <li>Natural Language Summarization ensures accessibility for non-experts, bridging the gap between complex data and user understanding.</li>
+          </ul>
+        </divclass="highlight-box">
+          <strong>Innovation:</strong>
+          <ul>
+            <li>Use data reduction techniques to address the performance issue for large datasets.</li>
+            <li>Implement drag-and-drop interaction for flexible exploration.</li>
+            <li>Incoporate multi-factor machine learning models for prediction.</li>
+            <li>Provide LLM-driven insights based on visualization by using the GPT-4o API.</li>
+          </ul>
+        </div>
+      </div>
+      
+    </div>
+
+    <div class="section">
+      <h2 class="section-title">Data</h2>
+      <div class="content-text">
+        <strong>Source:</strong> Downloaded from the popular real estate dataset on <a href="https://www.kaggle.com/datasets/ahmedshahriarsakib/usa-real-estate-dataset">Kaggle</a>.
+        <div class="highlight-box">
+          <strong>Characteristics:</strong>
+          <ul>
+            <li>Coverage: USA nation wide listings of property.</li>
+            <li>Number of Records: Over 2.2 million rows of data.</li>
+            <li>Features: Contain 10 features, such as price, zipcode, number of bedrooms, size of lot, house size, etc.</li>
+            <li>Processing: Spark-based cleaning and aggregation.</li>
+          </ul>
+        <div class="highlight-box">
+          <strong>Data Cleaning:</strong>
+          <ul>
+            <li>Deleted features with >50% missing values.</li>
+            <li>Logarithmic transform on target variable price for symmetry and wider distribution.</li>
+            <li>Encoded categorical variables using numerical label encoding.</li>
+          </ul>
+        </div>
+        <div class="highlight-box">
+          <strong>Machine Learning:</strong>
+          <ul>
+            <li>Use cross-validation for model evaluation.</li>
+            <li>Hyperparameter tuning with grid search.</li>
+            <li>Feature importance analysis to identify key predictors.</li>
+          </ul>
+        </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2 class="section-title">Experiments and Results</h2>
+      <div class="content-text">
+        <div class="highlight-box">
+          <strong>Evaluation Approach:</strong>
+          <ul>
+        <li>Training/testing split validation</li>
+        <li>Metrics: R-square, RMSE, Pearson R</li>
+        <li>Feature importance via SHAP values</li>
+        <li>User interface testing with GT students</li>
+          </ul>
+        </div>
+
+        <table class="results-table">
+          <tr>
+        <th>Model</th>
+        <th>R square</th>
+        <th>RMSE</th>
+          </tr>
+          <tr>
+        <td>Random Forest</td>
+        <td>0.81</td>
+        <td>0.12</td>
+          </tr>
+          <tr>
+        <td>3-layer Neural Network</td>
+        <td>0.77</td>
+        <td>0.14</td>
+          </tr>
+          <tr>
+        <td>Linear Regression</td>
+        <td>0.68</td>
+        <td>0.19</td>
+          </tr>
+        </table>
+
+        <div class="highlight-box">
+          <strong>Key Findings:</strong>
+          <ul>
+        <li>Random Forest performed best with R² of 0.81</li>
+        <li>Feature importance: house size, bathrooms, acre lot size</li>
+        <li>Better accuracy on lower-priced properties</li>
+        <li>Users are aware of all the features of visualization tool and find it very easy to use.</li>
+        <li>Users think highly of the interactions and LLMs integration.</li>
+          </ul>
+        </div>
+
+        <div class="highlight-box">
+          <strong>Comparison to Other Methods:</strong>
+          <ul>
+        <li>Our R² of 0.81 comparable to benchmark of 0.9 in Ho's Random Forest study.</li>
+        <li>Achieved competitive results with simpler, more interpretable models.</li>
+        <li>Our system enhances scalability, interactivity, accessibility compared to current practices.</li>
+          </ul>
+        </div>
+      </div>
+        </div>
+
+    <div class="section">
+      <h2 class="section-title">Interactive Visualization Interface</h2>
+      <img src="Interface.png" alt="USA Property Price Map">
+      <div class="content-text">
+        <ul>
+          <li>Upper Left - USA Choropleth Map: Visualizes state-level data with the flexibility to toggle between median property prices and the number of listings.</li>
+          <li>Upper Right - ZIP code-level Choropleth Map: When a state is dragged from the USA choropleth map, a detailed ZIP code-level choropleth map for the selected state is generated.</li>
+          <li>Lower Right - Multi-Dimensional Plot: Corresponding to the ZIP code-level map, this plot help users identify patterns, relationships, and variations among ZIP codes with highlight color.</li>
+          <li>Lower Left - AI Insights Panel: Leverages GPT-4o to generate natural language summaries of the three visualizations.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+
