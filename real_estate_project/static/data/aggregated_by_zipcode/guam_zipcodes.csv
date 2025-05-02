@@ -1,0 +1,5 @@
+state,zip_code,total_listings,price_median,bed_median,bath_median,acre_lot_median,house_size_median,price_mean,bed_mean,bath_mean,acre_lot_mean,house_size_mean
+Guam,96910,11,498000.0,3,3,0.19,2726.0,912136.36,4.09,3.18,0.19,2457.09
+Guam,96915,14,580000.0,3,2,0.2,1801.0,584428.57,3.5,2.57,0.21,1803.0
+Guam,96929,41,560000.0,4,3,0.23,1872.0,543768.27,3.63,2.73,0.24,1903.85
+Guam,96913,26,648000.0,4,3,0.23,2053.0,787364.92,4.15,3.19,0.27,2415.62

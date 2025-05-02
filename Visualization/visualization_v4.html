@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<head>
+    <!-- add title -->
+    <!-- import required libraries here -->
+    <script type="text/javascript" src="../lib/d3.v5.min.js"></script>
+    <script type="text/javascript" src="../lib/d3-legend.min.js"></script>
+    <script type="text/javascript" src="../lib/d3-tip.min.js"></script>
+    <style>
+        /* define CSS rules here */
+        .d3-tip {
+            line-height: 1;
+            font-weight: bold;
+            padding: 8px;
+            background: #ec9b04c0;
+            color: #fff;
+            border-radius: 5px;
+            transform: translate(10px, 200px);
+            font-size: 14px;
+        }
+
+        .title {
+            text-align: center;
+            font-size: 45px;
+            font-family: Roboto;
+            margin: 20px 0; 
+            color: #54278f;
+            text-shadow: 2px 2px 4px #cbc9e2;
+            background-color: rgba(255, 255, 255, 0.8);
+            padding: 10px 20px;
+        }
+
+        
+        #plotDiv {
+            width: 600px;  
+            height: 400px; 
+            margin: 20px; 
+            border: 1px solid #ccc; 
+            position: absolute; 
+            bottom: 20px; 
+            left: 20px; 
+            z-index: 1; 
+            display: none; 
+        }
+
+    
+        #choropleth {
+            position: relative; 
+            z-index: 0; /* Ensure it is below the plot area */
+        }
+
+        /* Predefined styles for highlighted lines */
+        .highlighted {
+            stroke: #ec9b04c0;
+            stroke-width: 10; 
+            opacity: 1;
+        }
+
+        .original {
+            stroke: #333; 
+            stroke-width: 2; 
+            opacity: 0.9; 
+        }
+
+        /* Lower opacity for non-highlighted lines */
+        .faded {
+            opacity: 0.3; 
+        }
+
+    /* Add styles for the dropdown */
+    #optionSelector {
+        margin: 15px;
+        font-size: 20px;
+    }
+
+    </style>
+
+    <title>USA Property Price Visualization</title>
+</head>
+
+
+<body>
+    <!-- Add heading for the visualization -->
+    <h1 class="title">USA Property Price Visualization </h1>
+
+    <!-- Add the plot area here -->
+    <div id="plotDiv"></div>
+
+    <!-- Radio buttons -->
+    <div id="optionSelector">
+        <label>
+            <input type="radio" name="metric" value="price_median" checked>
+            Median Price by State  
+        </label>
+        <label>
+            <input type="radio" name="metric" value="total_listings">
+            Number of Listings by State
+        </label>
+    </div>
+
+    <script>
+        
+        // Notes: Don't change this configuration. Otherwise, significant times will be taken to re-adjusted all the positions.
+        const margin = { top: 20, right: 20, bottom: 20, left: 20 };
+        const width = 1920 - margin.left - margin.right;
+        const height = 1280 - margin.top - margin.bottom;
+
+        const svg = d3
+            .select("body")
+            .append("svg")
+            .attr("id", "choropleth")
+            .attr("width", width + margin.left + margin.right)
+            .attr("height", height + margin.top + margin.bottom);
+
+        // Create color scale for map
+        const create_color_scale = (metrics) => 
+            d3.scaleQuantile()
+            .domain(metrics)
+            .range(["#f2f0f7", "#cbc9e2", "#9e9ac8", "#756bb1", "#54278f" ]);// 5-class Purples
+            // .range(["#f2f0f7", "#cbc9e2", "#9e9ac8", "#6a51a3"]); // 4-class Purples
+            //.range(["#eff3ff", "#bdd7e7", "#6baed6", "#3182bd", "#08519c"]); // 4-class Blues
+
+        const tooltip = d3.tip()
+            .attr("class", "d3-tip")
+            .attr("id", "tooltip")
+            .offset([-10, 0]);
+            
+
+        // Define projection and path required for Choropleth
+        const projection = d3.geoAlbersUsa() 
+            .scale(1200)  
+            .translate([width / 4, height / 3]);
+        const path = d3.geoPath().projection(projection);
+
+
+        // Define any other global variables 
+        const stateAbbreviations = {
+            "Alabama": "al",
+            "Alaska": "ak",
+            "Arizona": "az",
+            "Arkansas": "ar",
+            "California": "ca",
+            "Colorado": "co",
+            "Connecticut": "ct",
+            "Delaware": "de",
+            "Florida": "fl",
+            "Georgia": "ga",
+            "Hawaii": "hi",
+            "Idaho": "id",
+            "Illinois": "il",
+            "Indiana": "in",
+            "Iowa": "ia",
+            "Kansas": "ks",
+            "Kentucky": "ky",
+            "Louisiana": "la",
+            "Maine": "me",
+            "Maryland": "md",
+            "Massachusetts": "ma",
+            "Michigan": "mi",
+            "Minnesota": "mn",
+            "Mississippi": "ms",
+            "Missouri": "mo",
+            "Montana": "mt",
+            "Nebraska": "ne",
+            "Nevada": "nv",
+            "New Hampshire": "nh",
+            "New Jersey": "nj",
+            "New Mexico": "nm",
+            "New York": "ny",
+            "North Carolina": "nc",
+            "North Dakota": "nd",
+            "Ohio": "oh",
+            "Oklahoma": "ok",
+            "Oregon": "or",
+            "Pennsylvania": "pa",
+            "Rhode Island": "ri",
+            "South Carolina": "sc",
+            "South Dakota": "sd",
+            "Tennessee": "tn",
+            "Texas": "tx",
+            "Utah": "ut",
+            "Vermont": "vt",
+            "Virginia": "va",
+            "Washington": "wa",
+            "West Virginia": "wv",
+            "Wisconsin": "wi",
+            "Wyoming": "wy"
+        };
+
+        const stateGeoJSONCache = new Map();
+
+        let stateData;
+
+        Promise.all([
+            d3.json("../GeoJSON/us_states.json"),
+            d3.dsv(",", "../Data/aggregated_by_state.csv", function (d) {
+                return {
+                    state: d["state"],
+                    total_listings: +d["total_listings"],
+                    price_median: +d["price_median"],
+                    bed_median: +d["bed_median"],
+                    bath_median: +d["bath_median"],
+                    acre_lot_median: +d["acre_lot_median"],
+                    house_size_median: +d["house_size_median"]
+                }
+            })
+
+            
+        ]).then(
+            (data) => {
+                const states = data[0];
+                stateData = data[1]; // Assign the stateData to the global variable
+                console.log("States data:", states);
+                console.log("State aggregated data:", stateData);
+                
+                prefetchStateGeoJSON();
+                
+                createMapAndLegend(states, stateData); 
+                svg.call(tooltip);
+
+
+            }
+        );
+        
+        // This function should be called once the data from files have been read
+        function ready(error, state, stateData) {
+            createMapAndLegend(state, stateData); 
+        }
+
+        function createMapAndLegend(states, stateData){ 
+            d3.selectAll("#legend").remove();
+
+            const color_scale = create_color_scale(stateData.map(d => d.price_median));
+           
+            const legend = svg
+            .append("g")
+            .attr("id", "legend")
+            .attr("transform", "translate(" + (width / 4 - 450) + "," + (margin.top) + ")");
+
+        legend.append("g")
+            .call(d3.legendColor()
+            .scale(color_scale)
+            .shapeWidth(200)       
+            .shapeHeight(15)
+            .labelFormat(d3.format("$,.0f"))
+            // .title("Median Price by State")
+            .title("")
+            .titleWidth(250)
+            .orient("horizontal")
+            .cells(color_scale.quantiles())
+            );
+
+            const statesGroup = svg.append("g")
+                .attr("id", "states")
+                // .attr("transform", "translate(50," + (margin.top + 20) + ")");
+                .attr("transform", "translate(50," + (margin.top - 50) + ")");
+
+ 
+            statesGroup.append("text")
+                .attr("x", 1400) 
+                // .attr("y", 80)
+                .attr("y", 70)
+                .attr("text-anchor", "middle") 
+                .style("font-size", "40px") 
+                .style("font-weight", "bold") 
+                .style("fill", "#54278f") 
+                .text("Drag A State For Details");
+
+            tooltip.html(function(d) {
+                const state = d.properties.name; 
+                const state_data_of_state = stateData.find(g => g.state === state) || {}; // Use stateData to find the state
+                const priceMedian = state_data_of_state.price_median ? state_data_of_state.price_median.toFixed(2) : "N/A";
+                const totalListings = state_data_of_state.total_listings || "N/A";
+                const bedMedian = state_data_of_state.bed_median || "N/A";
+                const bathMedian = state_data_of_state.bath_median || "N/A";
+                const acreLotMedian = state_data_of_state.acre_lot_median || "N/A";
+                const houseSizeMedian = state_data_of_state.house_size_median || "N/A";
+
+                return `<strong> State: </strong> ${state} <br>
+                        <strong> Median Price: </strong> $${priceMedian} <br>
+                        <strong> Total Listings: </strong> ${totalListings} <br>
+                        <strong> Median Beds: </strong> ${bedMedian} <br>
+                        <strong> Median Baths: </strong> ${bathMedian} <br>
+                        <strong> Median Lot Size: </strong> ${acreLotMedian} acres<br>
+                        <strong> Median House Size: </strong> ${houseSizeMedian} sq ft`;
+            });
+
+            if (Array.isArray(states.features)) {
+                statesGroup.selectAll("path")
+                    .data(states.features)
+                    .enter()
+                    .append("path")
+                    .attr("state_name", function(d) { return d.properties.name; })
+                    .attr("d", path)
+                    .attr("stroke", "#fff")
+                    .attr("stroke-width", 1)
+                    .attr("fill", (d) => {
+                        const state_data_of_state = stateData.find(r => r.state === d.properties.name) || {};
+                        const price = state_data_of_state ? state_data_of_state.price_median : null; 
+                        return price ? color_scale(price) : "#888";   
+                    })
+                    .on('mouseover', tooltip.show) 
+                    .on('mouseout', tooltip.hide)
+                    .call(d3.drag()
+                        .on("start", dragstarted)
+                        .on("drag", dragged)
+                        .on("end", dragended));
+            } else {
+                console.error("Expected 'states.features' to be an array, but got:", states.features);
+            }
+
+        }
+
+        // const credit = svg.append("text")
+        //   .attr(
+        //     "transform",
+        //     "translate(" +
+        //       (width / 2 + 100) +
+        //       ", " +
+        //       (height + margin.bottom - 80) +
+        //       ")"
+        //   )
+        //   .style("text-anchor", "middle")
+        //   .style("font-family", "Roboto")
+        //   .style("font-size", 20)
+        //   .style("font-weight", "bold")
+        //   .style("fill", "navy")
+        //   .text("dyao41");
+
+        function dragstarted(event, d) {
+            const stateName = d3.select(this).attr("state_name");
+            const stateAbbrev = stateAbbreviations[stateName];
+            
+            if (stateAbbrev) {
+                d3.select(this)
+                    .raise()
+                    .attr("stroke", "red")
+                    .attr("stroke-width", 2)
+                    .style("cursor", "grabbing");
+                
+                const bbox = this.getBBox();
+                this._initialPosition = {
+                    x: bbox.x,
+                    y: bbox.y
+                };
+            }
+        }
+
+        function dragged(event, d) {
+            const dx = d3.event.x - this._initialPosition.x;
+            const dy = d3.event.y - this._initialPosition.y;
+            
+            d3.select(this)
+                .attr("transform", `translate(${dx}, ${dy})`);
+        }
+
+        function dragended(event, d) {
+            d3.select("#multiDimensionalPlot").remove();
+
+            const stateName = d3.select(this).attr("state_name");
+            
+            d3.select(this)
+                .attr("stroke", "#fff")
+                .attr("stroke-width", 1);
+            
+            const finalPosition = d3.mouse(svg.node());
+            
+            if (finalPosition[0] > width * 0.6) {
+                fetchStateGeoJSON(stateName);
+                d3.select(this)
+                    .transition()
+                    .duration(500)
+                    .attr("transform", this._initialTransform || null);
+                
+            } else {
+                d3.select(this)
+                    .transition()
+                    .duration(500)
+                    .attr("transform", this._initialTransform || null);
+            }
+        }
+
+        function fetchStateGeoJSON(stateName) {
+            // Remove any existing state map
+            d3.select("#stateMap").remove();
+
+            const stateAbbrev = stateAbbreviations[stateName];
+            const formattedStateName = stateName.replace(/\s+/g, '_');
+
+            Promise.all([
+                stateGeoJSONCache.get(stateName) || 
+                d3.json(`../geojson/${stateAbbrev}_${formattedStateName}_zip_codes_geo.min.json`),
+                d3.dsv(",", `../Data/aggregated_by_zipcode/${stateName}_zipcodes.csv`, d => {
+                    //console.log("Raw CSV row:", d);
+                    const zipcodeValue = d["zipcode"] || d["zip_code"] || d["Zipcode"] || d["ZIP"];
+                    
+                    return {
+                        zipcode: zipcodeValue ? String(zipcodeValue).padStart(5, '0') : null,
+                        total_listings: +d["total_listings"],
+                        price_median: +d["price_median"],
+                        bed_median: +d["bed_median"],
+                        bath_median: +d["bath_median"],
+                        acre_lot_median: +d["acre_lot_median"],
+                        house_size_median: +d["house_size_median"]
+                    };
+                })
+            ])
+            .then(([geoData, zipcodeData]) => {
+                zipcodeData = zipcodeData.filter(d => d.zipcode !== null);
+                
+                // console.log("Processed zipcode data:", zipcodeData.slice(0, 5));
+                // console.log("Sample GeoJSON feature:", geoData.features[0]);
+
+                if (!stateGeoJSONCache.has(stateName)) {
+                    stateGeoJSONCache.set(stateName, geoData);
+                }
+                
+                // Join the data
+                geoData.features.forEach(feature => {
+                    const zipcode = String(feature.properties.ZCTA5CE10).padStart(5, '0');
+                    const zipcodeInfo = zipcodeData.find(d => d.zipcode === zipcode);
+                    if (zipcodeInfo) {
+                        feature.properties = { ...feature.properties, ...zipcodeInfo };
+                    }
+                });
+
+                renderStateMap(geoData, stateName);
+                generateMultiDimensionalPlot(zipcodeData);
+            })
+            .catch(error => {
+                console.error("Error loading state data:", error);
+                console.error("State Name:", stateName);
+                console.error("Path attempted:", `../Data/aggregated_by_zipcode/${stateName}_zipcodes.csv`);
+            });
+        }
+
+        function renderStateMap(stateData, stateName) {
+            const stateMapSize = Math.min(width * 0.25, height * 0.5);
+
+            const stateGroup = svg.append("g")
+                .attr("id", "stateMap")
+                .attr("transform", "translate(" + (width * 0.65 + 160) + "," + (height * 0.2 - 60) + ")");
+                // .attr("transform", "translate(" + (width * 0.1 + 40) + "," + (height * 0.8 - 60) + ")");
+
+            stateGroup.append("text")
+                .attr("x", stateMapSize / 2)
+                .attr("y", -20)
+                .attr("text-anchor", "middle")
+                .style("font-size", "20px")
+                .style("font-weight", "bold")
+                .style("fill", "#54278f")
+                .text(`${stateName} Zip Code Area Breakdown`);
+
+            const stateProjection = d3.geoMercator()
+                .fitSize([stateMapSize, stateMapSize], stateData);
+
+            const statePath = d3.geoPath().projection(stateProjection);
+
+            const zipPrices = stateData.features
+                .map(d => d.properties.price_median)
+                .filter(d => d);
+            const color_scale = create_color_scale(zipPrices);
+
+            const zipTooltip = d3.tip()
+                .attr("class", "d3-tip")
+                .offset([-10, 0])
+                .html(d => {
+                    const zip = d.properties.ZCTA5CE10;
+                    const price = d.properties.price_median;
+                    const listings = d.properties.total_listings;
+                    const beds = d.properties.bed_median;
+                    const baths = d.properties.bath_median;
+                    const acres = d.properties.acre_lot_median;
+                    const size = d.properties.house_size_median;
+
+                    return `<strong>ZIP Code:</strong> ${zip}<br>
+                            <strong>Median Price:</strong> ${price ? `$${price.toLocaleString()}` : 'No data'}<br>
+                            <strong>Total Listings:</strong> ${listings || 'No data'}<br>
+                            <strong>Median Beds:</strong> ${beds || 'No data'}<br>
+                            <strong>Median Baths:</strong> ${baths || 'No data'}<br>
+                            <strong>Median Lot Size:</strong> ${acres ? `${acres.toFixed(2)} acres` : 'No data'}<br>
+                            <strong>Median House Size:</strong> ${size ? `${size.toLocaleString()} sq ft` : 'No data'}`;
+                });
+
+            svg.call(zipTooltip);
+
+            stateGroup.selectAll("path")
+                .data(stateData.features)
+                .enter()
+                .append("path")
+                .each(function(d) {
+                    d3.select(this).datum(d); // Store the data directly in the selection
+                })
+                .attr("d", statePath)
+                .attr("stroke", "#333")
+                .attr("stroke-width", 0.5)
+                .attr("zipcode", function(d) { return d.properties.ZCTA5CE10; })
+                .attr("fill", d => {
+                    const price = d.properties.price_median;
+                    const originalColor = price ? color_scale(price) : "#888"; // Store original color
+                    d.originalColor = originalColor;
+                    return originalColor;
+                })
+                .attr("opacity", 0.9)
+                .on('mouseover', function(event, d) {
+                    zipTooltip.show(event, d);
+                    const zipcode = d3.select(this).datum().properties.ZCTA5CE10;
+                    //highlightLine(zipcode);
+                    d3.selectAll(`#multiDimensionalPlot path[zipcode="${zipcode}"]`)
+                        .classed("highlighted", true);
+
+                    // Add faded class to other lines
+                    // d3.selectAll(`#multiDimensionalPlot path`)
+                    //     .classed("faded", true)
+                    //     .filter(d => d3.select(this).attr("zipcode") !== zipcode) // Exclude the highlighted line
+                    //     .classed("faded", false);
+                    
+                })
+                .on('mouseout', function(event, d) {
+                    zipTooltip.hide(event, d);
+                    const zipcode = d3.select(this).datum().properties.ZCTA5CE10;
+                    // Remove highlighted class
+                    d3.selectAll(`#multiDimensionalPlot path[zipcode="${zipcode}"]`)
+                        .classed("highlighted", false) 
+                        //.attr("stroke", d => d.originalColor); // Restore original color
+                    // d3.selectAll(`#multiDimensionalPlot path`)
+                    //     .classed("faded", false);
+                })
+                .call(d3.drag() 
+                    .on("start", dragstartedZip)
+                    .on("drag", draggedZip)
+                    .on("end", dragendedZip));
+
+         
+            const legendGroup = stateGroup.append("g")
+                .attr("transform", `translate(${stateMapSize * -1 + 220}, ${margin.top - 100})`); 
+
+            legendGroup.append("g")
+                .call(d3.legendColor()
+                    .scale(color_scale)
+                    .shapeWidth(15)       
+                    .shapeHeight(100)       
+                    .labelFormat(d3.format("$,.0f"))
+                    .title("Median Price by ZIP Code")
+                    .titleWidth(200)
+                    .orient("vertical")     
+                    .cells(color_scale.quantiles())
+                );
+
+        }
+
+        function dragstartedZip(event, d) {
+            const zipcode = d3.select(this).attr("zipcode");
+            
+            
+            if (zipcode) {
+                d3.select(this)
+                    .raise()
+                    .attr("stroke", "red")
+                    .attr("stroke-width", 2)
+                    .style("cursor", "grabbing");
+                
+                const bbox = this.getBBox();
+                this._initialPosition = {
+                    x: bbox.x,
+                    y: bbox.y
+                };
+            }
+        }
+
+        function draggedZip(event, d) {
+
+            const dx = d3.event.x - this._initialPosition.x;
+            const dy = d3.event.y - this._initialPosition.y;
+            
+            d3.select(this)
+                .attr("transform", `translate(${dx}, ${dy})`);
+        }
+
+        function dragendedZip(event, d) {
+            const zipcode = d3.select(this).attr("zipcode");
+            const zipData = d3.select(this).datum(); // Access the bound data directly
+            
+            d3.select(this)
+                .attr("stroke", "#fff")
+                .attr("stroke-width", 1);
+            
+            const finalPosition = d3.mouse(svg.node());
+            
+            // Check if the zipcode is dragged to the left-down area
+            if (finalPosition[0] < width * 0.4 && finalPosition[1] > height * 0.6) {
+                console.log(zipcode);
+
+                // Placeholded function for the spider plot, passing the specific zipcode data to the function after dragging.
+                generateSpiderPlot(zipData);
+                
+                d3.select(this)
+                    .transition()
+                    .duration(500)
+                    .attr("transform", this._initialTransform || null);
+            } else {
+                d3.select(this)
+                    .transition()
+                    .duration(500)
+                    .attr("transform", this._initialTransform || null);
+            }
+        }
+
+        function prefetchStateGeoJSON() {
+            // Get all state names from the abbreviations object
+            Object.entries(stateAbbreviations).forEach(([stateName, stateAbbrev]) => {
+                const formattedStateName = stateName.replace(/\s+/g, '_');
+                const geojsonPath = `../geojson/${stateAbbrev}_${formattedStateName}_zip_codes_geo.min.json`;
+                
+                d3.json(geojsonPath)
+                    .then(stateData => {
+                        stateGeoJSONCache.set(stateName, stateData);
+                        console.log(`Prefetched data for ${stateName}`);
+                    })
+                    .catch(error => {
+                        console.error(`Error prefetching ${stateName} GeoJSON:`, error);
+                    });
+            });
+        }
+
+
+        function generateMultiDimensionalPlot(zipcodeData) {
+            d3.select("#multiDimensionalPlot").remove(); 
+
+            const margin = { top: 20, right: 50, bottom: 30, left: 50 }; 
+            const width = 900 - margin.left - margin.right; 
+            const height = 500 - margin.top - margin.bottom; 
+
+            const plotSvg = svg.append("g")
+                .attr("id", "multiDimensionalPlot")
+                .attr("transform", `translate(${margin.left + 1000}, ${height + 320})`); 
+
+            plotSvg.append("text")
+                .attr("x", width / 2) 
+                .attr("y", - 35) 
+                .attr("text-anchor", "middle") 
+                .style("font-size", "40px") 
+                .style("font-weight", "bold") 
+                .style("fill", "#54278f") 
+                .text("Multi-Dimensional View"); 
+
+ 
+            const allDimensions = ["Median Price", "Median Bedrooms", "Median Bathrooms", "Median Acre Lot", "Median House Size"];
+            
+            const plotData = zipcodeData.map(d => ({
+                zipcode: d.zipcode,
+                "Median Price": d.price_median,
+                "Median Bedrooms": d.bed_median,
+                "Median Bathrooms": d.bath_median,
+                "Median Acre Lot": d.acre_lot_median,
+                "Median House Size": d.house_size_median
+            }));
+            const medianPrices = plotData.map(d => d["Median Price"]);
+            
+            
+            const colorScale = d3.scaleQuantile()
+                .domain(medianPrices)
+                .range([ "#cbc9e2", "#9e9ac8", "#756bb1", "#54278f"]);
+
+
+            const x = d3.scalePoint()
+                .domain(allDimensions)
+                .range([0, width]);
+
+            const yScales = {};
+            allDimensions.forEach(dimension => {
+                yScales[dimension] = d3.scaleLinear()
+                    .domain([0, d3.max(plotData, data => data[dimension]) * 1.1])
+                    .range([height, 0]);
+            });
+
+           
+
+            // Draw lines for each ZIP code
+            plotData.forEach((data, index) => {
+                plotSvg.append("path")
+                    .datum(allDimensions.map(dimension => ({ dimension, value: data[dimension] })))
+                    .attr("fill", "none")
+                    .attr("stroke", colorScale(data["Median Price"])) // Use the median price for color in current verision
+                    .attr("stroke-width", 2)
+                    .attr("opacity", 0.35)
+                    .attr("zipcode", data.zipcode)
+                    .attr("d", d3.line()
+                        .x(d => x(d.dimension))
+                        .y(d => yScales[d.dimension](d.value))
+                    );
+            });
+
+            allDimensions.forEach(dimension => {
+                plotSvg.append("g")
+                    .attr("transform", `translate(${x(dimension)})`)
+                    .call(d3.axisLeft(yScales[dimension]));
+
+                plotSvg.append("text")
+                    .attr("x", x(dimension))
+                    .attr("y", height + margin.top)
+                    .attr("dy", "1em")
+                    .style("text-anchor", "middle")
+                    .style("font-weight", "bold") 
+                    .style("font-size", "15px") 
+                    .style("fill", "black")
+                    .text(dimension);
+            });
+
+            
+        }
+
+        // Section for updating USA map if a different radio option is selected
+        function updateMap(selectedOption) {
+            d3.select("#stateMap").remove(); 
+            d3.select("#multiDimensionalPlot").remove();
+
+            const color_scale = create_color_scale(stateData.map(d => d[selectedOption]));
+
+            d3.selectAll("#legend").remove();
+            const legend = svg.append("g")
+                .attr("id", "legend")
+                .attr("transform", "translate(" + (width / 4 - 450) + "," + (margin.top) + ")");
+
+            legend.append("g")
+                .call(d3.legendColor()
+                    .scale(color_scale)
+                    .shapeWidth(200)
+                    .shapeHeight(15)
+                    .labelFormat(selectedOption === "price_median" ? d3.format("$,.0f") : d3.format(",.0f"))
+                    // .title(selectedOption === "price_median" ? "Median Price by State" : "Number of Listings by State")
+                    .title("")
+                    .titleWidth(250)
+                    .orient("horizontal")
+                    .cells(color_scale.quantiles())
+                );
+
+            svg.selectAll("path")
+                .attr("fill", (d) => {
+                    const state_data_of_state = stateData.find(r => r.state === d.properties.name) || {};
+                    const value = state_data_of_state[selectedOption] || 0; 
+                    return color_scale(value);
+                });
+        }
+
+        d3.selectAll("input[name='metric']").on("change", function() {
+            const selectedOption = d3.select("input[name='metric']:checked").property("value");
+            updateMap(selectedOption);
+        });
+
+        // Section for future functionalities
+        // This is a placeholder function, which takes the zipData after dragging a zipcode in the left down corner.
+        function generateSpiderPlot(zipData) {
+            const zipCode = zipData.properties.zipcode;
+            const plotData = {
+                medianPrice: zipData.properties.price_median,
+                bedMedian: zipData.properties.bed_median,
+                bathMedian: zipData.properties.bath_median,
+                acreLotMedian: zipData.properties.acre_lot_median,
+                houseSizeMedian: zipData.properties.house_size_median
+            };
+            console.log(plotData)
+        }
+
+    </script>
+
+</body>
+
+</html>

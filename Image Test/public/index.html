@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>US Housing Prices & GPT Integration</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            line-height: 1.6;
+        }
+
+        h1 {
+            color: #333;
+        }
+
+        #chart-container {
+            margin-bottom: 20px;
+        }
+
+        #response {
+            margin-top: 30px;
+            padding: 15px;
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+        }
+
+        #response h2 {
+            margin-top: 0;
+        }
+
+        #generate-button {
+            margin-top: 20px;
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        #generate-button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>US Housing Prices by State</h1>
+
+    <!-- Chart Container -->
+    <div id="chart-container">
+        <canvas id="chart" width="800" height="400"></canvas>
+    </div>
+
+    <!-- Generate Summary Button -->
+    <button id="generate-button">Generate Summary</button>
+
+    <!-- GPT Response Section -->
+    <div id="response" style="display: none;">
+        <h2>GPT-4o's Feedback:</h2>
+        <p id="gpt-response">Awaiting response...</p>
+    </div>
+
+    <!-- Include Chart.js and html2canvas -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+    <!-- Frontend JavaScript -->
+    <script>
+        // Chart.js data for US housing prices
+        const housingData = {
+            labels: ['California', 'New York', 'Massachusetts', 'Texas', 'Florida', 'West Virginia', 'Mississippi'],
+            datasets: [{
+                label: 'Median Home Price ($)',
+                data: [700000, 500000, 450000, 250000, 300000, 100000, 120000],
+                backgroundColor: 'rgba(75, 192, 192, 0.6)',
+                borderColor: 'rgba(75, 192, 192, 1)',
+                borderWidth: 1
+            }]
+        };
+
+        // Create the bar chart
+        const ctx = document.getElementById('chart').getContext('2d');
+        const housingChart = new Chart(ctx, {
+            type: 'bar',
+            data: housingData,
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    },
+                    title: {
+                        display: true,
+                        text: 'US Median Home Prices by State'
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+
+        // Function to capture a screenshot of the chart
+        async function captureChartScreenshot() {
+            const chartContainer = document.getElementById('chart-container');
+            const canvas = await html2canvas(chartContainer, { useCORS: true }); // Ensure cross-origin images are included
+            return canvas.toDataURL('image/png'); // Convert to Base64
+        }
+
+        // Function to send screenshot to GPT backend
+        async function sendScreenshotToGPT() {
+            try {
+                // Capture the screenshot
+                const screenshotBase64 = await captureChartScreenshot();
+
+                // Send the screenshot to the backend
+                const response = await fetch('http://localhost:3000/api/generate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ image: screenshotBase64 }),
+                });
+
+                // Parse JSON response
+                if (!response.ok) {
+                    throw new Error(`Server error: ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                // Display the GPT response
+                document.getElementById('gpt-response').innerText = data.reply;
+                document.getElementById('response').style.display = 'block';
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('gpt-response').innerText = 'An error occurred while fetching the response.';
+                document.getElementById('response').style.display = 'block';
+            }
+        }
+
+        // Attach event listener to the "Generate Summary" button
+        document.getElementById('generate-button').addEventListener('click', sendScreenshotToGPT);
+    </script>
+</body>
+
+</html>

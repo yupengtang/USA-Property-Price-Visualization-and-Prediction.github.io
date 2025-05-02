@@ -1,0 +1,205 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>USA Property Price Prediction</title>
+    
+    <!-- External CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Custom Styles -->
+    <style>
+        body {
+            background-color: #f0f2f5;
+        }
+
+        .form-container {
+            background: #ffffff;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+        }
+
+        .form-horizontal .form-group {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .form-horizontal .form-label {
+            flex: 0 0 200px;
+            text-align: right;
+            padding-right: 15px;
+        }
+
+        .result.success {
+            background-color: #d4edda;
+            border-left: 5px solid #28a745;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+
+        .result.error {
+            background-color: #f8d7da;
+            border-left: 5px solid #dc3545;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .form-horizontal .form-group {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .form-horizontal .form-label {
+                text-align: left;
+                margin-bottom: 5px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="#">USA Property Dashboard</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'price_query' %}active{% endif %}" href="{% url 'price_query' %}">Prediction</a>
+                    </li>
+                    <li class="nav-item">
+                        
+                        <a class="nav-link {% if request.resolver_match.url_name == 'visualization' %}active{% endif %}" href="{% url 'visualization' %}">Visualization</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Page Content -->
+    <div class="container">
+        <header class="mb-4 text-center">
+            <h1 class="display-4">USA Property Price Prediction</h1>
+            <p class="lead"><em>Select a model for prediction</em></p>
+        </header>
+
+        <main>
+            <div class="form-container">
+                <h2>Enter Property Details</h2>
+                <form method="post" class="needs-validation form-horizontal" novalidate>
+                    {% csrf_token %}
+
+                    <!-- Core Required Fields -->
+                    <div class="form-group">
+                        <label for="bed" class="form-label">Number of Bedrooms:</label>
+                        <input type="number" class="form-control" id="bed" name="bed" min="0" placeholder="e.g., 3" required>
+                        <div class="invalid-feedback">Please provide the number of bedrooms.</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="bath" class="form-label">Number of Bathrooms:</label>
+                        <input type="number" class="form-control" id="bath" name="bath" min="0" placeholder="e.g., 2" required>
+                        <div class="invalid-feedback">Please provide the number of bathrooms.</div>
+                    </div>
+
+                    <!-- Optional Detailed Fields -->
+                    <hr>
+                    <h3 class="mt-4">Optional Details</h3>
+
+                    <div class="form-group">
+                        <label for="zip_code" class="form-label">Zip Code:</label>
+                        <input type="number" class="form-control" id="zip_code" name="zip_code" placeholder="e.g., 30308">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="status" class="form-label">Status:</label>
+                        <input type="number" class="form-control" id="status" name="status" placeholder="e.g., 1">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="acre_lot" class="form-label">Acre Lot:</label>
+                        <input type="number" class="form-control" id="acre_lot" name="acre_lot" min="0" step="0.01" placeholder="e.g., 0.12">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="city" class="form-label">City:</label>
+                        <input type="number" class="form-control" id="city" name="city" placeholder="e.g., 1">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="state" class="form-label">State:</label>
+                        <input type="number" class="form-control" id="state" name="state" placeholder="e.g., 1">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="house_size" class="form-label">House Size (sqft):</label>
+                        <input type="number" class="form-control" id="house_size" name="house_size" min="0" placeholder="e.g., 2000">
+                    </div>
+
+                    <!-- Model Selection Dropdown -->
+                    <div class="form-group">
+                        <label for="model" class="form-label">Select Prediction Model:</label>
+                        <select id="model" name="model" class="form-select" required>
+                            <option value="" disabled selected>Select a model</option>
+                            <option value="decision_tree">Decision Tree</option>
+                            <option value="random_forest">Random Forest</option>
+                            <option value="linear_regression">Linear Regression</option>
+                            <option value="mlp">MLP (Neural Network)</option>
+                        </select>
+                        <div class="invalid-feedback">Please select a prediction model.</div>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <div class="form-group">
+                        <button type="submit" class="btn btn-primary w-100">Predict Price</button>
+                    </div>
+                </form>
+
+                {% if price %}
+                    <div class="result success">
+                        <p><strong>Prediction:</strong> ${{ price }}</p>
+                    </div>
+                {% elif error %}
+                    <div class="result error">
+                        <p>{{ error }}</p>
+                    </div>
+                {% endif %}
+            </div>
+        </main>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-dark text-white text-center py-3 mt-4">
+        <p class="mb-0">© 2024 USA Property Price Dashboard</p>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        (function () {
+            'use strict';
+            const forms = document.querySelectorAll('.needs-validation');
+            
+            forms.forEach(form => {
+                form.addEventListener('submit', event => {
+                    if (!form.checkValidity()) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                    }
+                    form.classList.add('was-validated');
+                });
+            });
+        })();
+    </script>
+</body>
+</html>

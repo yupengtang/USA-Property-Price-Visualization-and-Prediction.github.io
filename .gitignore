@@ -1,0 +1,15 @@
+# Ignore two large GeoJSON files
+GeoJSON/ca_california_zip_codes_geo.min.json
+GeoJSON/tx_texas_zip_codes_geo.min.json
+real_estate_project/static/GeoJSON/ca_california_zip_codes_geo.min.json
+real_estate_project/static/GeoJSON/tx_texas_zip_codes_geo.min.json
+
+# Ignore .DS_Store files
+.DS_Store
+
+.joblib
+.idea
+
+# Ingore node modules
+Image Test/node_modules/
+real_estate_project/express/node_modules/

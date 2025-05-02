@@ -1,0 +1,6 @@
+state,zip_code,total_listings,price_median,bed_median,bath_median,acre_lot_median,house_size_median,price_mean,bed_mean,bath_mean,acre_lot_mean,house_size_mean
+Virgin Islands,00820,40,799000.0,3,3,0.67,3190.0,1472499.95,3.8,3.38,0.82,4150.95
+Virgin Islands,00840,10,395000.0,4,3,0.6,3300.0,935299.9,4.2,3.1,1.12,3461.3
+Virgin Islands,00802,22,1295000.0,4,5,0.81,4832.0,1939634.09,4.86,5.09,0.74,5123.45
+Virgin Islands,00830,26,2100000.0,4,4,0.5,4400.0,2580980.73,3.62,3.92,0.55,4304.15
+Virgin Islands,00850,3,225000.0,3,1,0.12,1530.0,305666.67,3.0,1.33,0.41,1510.0
